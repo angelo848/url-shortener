@@ -1,6 +1,7 @@
 package com.asalles.urlshortener.application.usecase;
 
 import com.asalles.urlshortener.application.service.UrlMappingFactory;
+import com.asalles.urlshortener.application.util.UrlUtil;
 import com.asalles.urlshortener.core.entity.UrlMapping;
 import com.asalles.urlshortener.core.repository.UrlRepository;
 import java.net.URI;
@@ -26,7 +27,7 @@ public class ShortenUrlUseCase {
     return Mono.defer(() ->
       urlRepository.findByOriginalUrl(originalUrl)
         .flatMap(urlMapping -> {
-          String shortenedUrl = "shortCode";
+          String shortenedUrl = UrlUtil.generateShortCode();
           if (urlMapping.isPresent()) {
             return Mono.just(urlMapping.get().getShortenedUrl());
           }
