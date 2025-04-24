@@ -24,9 +24,9 @@ public class UrlRepositoryImpl implements UrlRepository {
       .flatMap(mapping -> {
         UrlMapping existingMapping = storageService.findUrlMappingByOriginalUrl(mapping.getOriginalUrl());
         if (existingMapping == null) {
-            storageService.storeUrlMapping(mapping);
-          }
-          return Mono.empty();
+          storageService.storeUrlMapping(mapping);
+        }
+        return Mono.empty();
       });
   }
 
