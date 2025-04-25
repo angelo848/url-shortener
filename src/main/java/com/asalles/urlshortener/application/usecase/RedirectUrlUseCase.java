@@ -22,11 +22,7 @@ public class RedirectUrlUseCase {
       .flatMap(urlMapping -> urlRepository.incrementAccessCount(urlMapping)
         .thenReturn(urlMapping)
       )
-      .onErrorResume(Exception.class, e -> {
-        if (e instanceof UrlNotFoundException) {
-          return Mono.error(e);
-        }
-        return Mono.error(new RuntimeException("Error processing URL redirect", e));
-      });
+      .onErrorMap(e -> !(e instanceof UrlNotFoundException),
+        e -> new RuntimeException("Error processing URL redirect", e));
   }
 }

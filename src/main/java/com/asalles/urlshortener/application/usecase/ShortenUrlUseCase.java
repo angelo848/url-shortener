@@ -24,19 +24,17 @@ public class ShortenUrlUseCase {
       return Mono.error(new InvalidUrlException("Invalid URL format"));
     }
 
-    return Mono.defer(() ->
-      urlRepository.findByOriginalUrl(originalUrl)
-        .flatMap(urlMapping -> {
-          String shortenedUrl = UrlUtil.generateShortCode();
-          if (urlMapping.isPresent()) {
-            return Mono.just(urlMapping.get().getShortenedUrl());
-          }
+    return urlRepository.findByOriginalUrl(originalUrl)
+      .flatMap(optUrlMapping -> {
+        if (optUrlMapping.isPresent()) {
+          return Mono.just(optUrlMapping.get().getShortenedUrl());
+        }
 
-          UrlMapping mapping = UrlMappingFactory.createUrlMapping(originalUrl, shortenedUrl, 30);
+        String shortenedUrl = UrlUtil.generateShortCode();
+        UrlMapping mapping = UrlMappingFactory.createUrlMapping(originalUrl, shortenedUrl, 30);
 
-          return urlRepository.save(mapping)
-            .thenReturn(shortenedUrl);
-        })
-    );
+        return urlRepository.save(mapping)
+          .thenReturn(shortenedUrl);
+      });
   }
 }

@@ -1,13 +1,11 @@
 package com.asalles.urlshortener.api.datasource;
 
-import com.asalles.urlshortener.application.service.CacheService;
 import com.asalles.urlshortener.application.service.StorageService;
 import com.asalles.urlshortener.core.entity.UrlMapping;
 import com.asalles.urlshortener.core.repository.UrlRepository;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Mono;
 
 @Component
@@ -20,14 +18,8 @@ public class UrlRepositoryImpl implements UrlRepository {
 
   @Override
   public Mono<Void> save(UrlMapping urlMapping) {
-    return Mono.just(urlMapping)
-      .flatMap(mapping -> {
-        Optional<UrlMapping> existingMapping = findUrlMappingByOriginalUrl(urlMapping.getOriginalUrl());
-        if (existingMapping.isEmpty()) {
-          storageService.storeUrlMapping(mapping);
-        }
-        return Mono.empty();
-      });
+    return Mono.fromRunnable(() ->
+      storageService.storeUrlMapping(urlMapping));
   }
 
   @Override
@@ -37,20 +29,20 @@ public class UrlRepositoryImpl implements UrlRepository {
 
   @Override
   public Mono<Optional<UrlMapping>> findByOriginalUrl(String originalUrl) {
-    return Mono.just(findUrlMappingByOriginalUrl(originalUrl));
+    return Mono.just(Optional.ofNullable(storageService.findUrlMappingByOriginalUrl(originalUrl)));
   }
 
   @Override
   public Mono<Void> delete(UrlMapping urlMapping) {
-    return Mono.empty();
+    return Mono.fromRunnable(() ->
+      storageService.deleteUrlMapping(urlMapping));
   }
 
   @Override
   public Mono<Void> incrementAccessCount(UrlMapping urlMapping) {
-    return Mono.empty();
-  }
-
-  private Optional<UrlMapping> findUrlMappingByOriginalUrl(String originalUrl) {
-    return Optional.ofNullable(storageService.findUrlMappingByOriginalUrl(originalUrl));
+    return Mono.fromRunnable(() -> {
+      urlMapping.setAccessCount(urlMapping.getAccessCount() + 1);
+      storageService.storeUrlMapping(urlMapping);
+    });
   }
 }

@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.util.InvalidUrlException;
 import reactor.core.publisher.Mono;
 
 @RestController
@@ -27,7 +28,6 @@ import reactor.core.publisher.Mono;
 public class UrlController {
 
   private final RedirectUrlUseCase redirectUrlUseCase;
-
   private final ShortenUrlUseCase shortenUrlUseCase;
 
   @PostMapping("/shorten")
@@ -38,27 +38,33 @@ public class UrlController {
     return shortenUrlUseCase.execute(request.url())
       .map(shortenedUrl -> {
         String baseUrl = UrlUtil.getBaseUrl(serverRequest);
-        return ResponseEntity.ok(UrlMappingMapper.toShortenUrlResponse(shortenedUrl, request.url(), baseUrl));
+        return ResponseEntity.ok(UrlMappingMapper.toShortenUrlResponse(
+          shortenedUrl, request.url(), baseUrl));
       })
-      .onErrorResume(e -> {
-        log.error("Error shortening URL: {}", e.getMessage());
-        return Mono.error(new RuntimeException("Error processing redirect", e));
-      });
+      .onErrorMap(e -> !(e instanceof InvalidUrlException),
+        e -> {
+          log.error("Error shortening URL: {}", e.getMessage());
+          return new RuntimeException("Error processing URL shortening", e);
+        });
   }
 
   @GetMapping("/{shortenedUrl}")
-  public Mono<ResponseEntity<ShortenUrlResponse>> redirectUrl(@PathVariable String shortenedUrl,
-                                                              ServerHttpRequest serverRequest) {
+  public Mono<ResponseEntity<ShortenUrlResponse>> redirectUrl(
+    @PathVariable String shortenedUrl,
+    ServerHttpRequest serverRequest) {
+
     return redirectUrlUseCase.execute(shortenedUrl)
-      .map(urlMapping -> ResponseEntity.status(HttpStatus.FOUND)
-        .header(HttpHeaders.LOCATION, urlMapping.getOriginalUrl())
-        .body(UrlMappingMapper.toShortenUrlResponse(urlMapping, serverRequest)))
-      .onErrorResume(e -> {
-        log.error("Error redirecting URL: {}", e.getMessage());
-        if (e instanceof UrlNotFoundException) {
-          return Mono.error(e);
-        }
-        return Mono.error(new RuntimeException("Error processing redirect", e));
-      });
+      .map(urlMapping -> {
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.LOCATION, urlMapping.getOriginalUrl());
+        return ResponseEntity.status(HttpStatus.FOUND)
+          .headers(headers)
+          .body(UrlMappingMapper.toShortenUrlResponse(urlMapping, serverRequest));
+      })
+      .onErrorMap(e -> !(e instanceof UrlNotFoundException),
+        e -> {
+          log.error("Error redirecting URL: {}", e.getMessage());
+          return new RuntimeException("Error processing URL redirect", e);
+        });
   }
 }

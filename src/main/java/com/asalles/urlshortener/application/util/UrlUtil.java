@@ -44,14 +44,14 @@ public class UrlUtil {
       value /= 62;
     }
 
-    StringBuilder result = new StringBuilder(sb.reverse().toString());
+    StringBuilder result = sb.reverse();
     if (result.length() > 8) {
       return result.substring(0, 8);
     }
 
     Random random = new Random();
     while (result.length() < 6) {
-      result.insert(0, ALPHABET.charAt(random.nextInt() * 62));
+      result.insert(0, ALPHABET.charAt(random.nextInt(62)));
     }
 
     return result.toString();
