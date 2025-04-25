@@ -25,4 +25,8 @@ public class UrlMapping {
   private LocalDateTime expiresAt;
 
   private Long accessCount;
+
+  public void incrementAccessCount() {
+    this.accessCount++;
+  }
 }

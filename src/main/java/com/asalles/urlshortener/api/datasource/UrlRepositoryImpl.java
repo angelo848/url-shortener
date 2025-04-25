@@ -41,7 +41,7 @@ public class UrlRepositoryImpl implements UrlRepository {
   @Override
   public Mono<Void> incrementAccessCount(UrlMapping urlMapping) {
     return Mono.fromRunnable(() -> {
-      urlMapping.setAccessCount(urlMapping.getAccessCount() + 1);
+      urlMapping.incrementAccessCount();
       storageService.storeUrlMapping(urlMapping);
     });
   }
