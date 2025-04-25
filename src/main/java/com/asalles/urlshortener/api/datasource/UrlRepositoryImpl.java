@@ -22,8 +22,8 @@ public class UrlRepositoryImpl implements UrlRepository {
   public Mono<Void> save(UrlMapping urlMapping) {
     return Mono.just(urlMapping)
       .flatMap(mapping -> {
-        UrlMapping existingMapping = storageService.findUrlMappingByOriginalUrl(mapping.getOriginalUrl());
-        if (existingMapping == null) {
+        Optional<UrlMapping> existingMapping = findUrlMappingByOriginalUrl(urlMapping.getOriginalUrl());
+        if (existingMapping.isEmpty()) {
           storageService.storeUrlMapping(mapping);
         }
         return Mono.empty();
@@ -32,12 +32,12 @@ public class UrlRepositoryImpl implements UrlRepository {
 
   @Override
   public Mono<Optional<UrlMapping>> findByShortenedUrl(String shortenedUrl) {
-    return null;
+    return Mono.just(Optional.ofNullable(storageService.getUrlMapping(shortenedUrl)));
   }
 
   @Override
   public Mono<Optional<UrlMapping>> findByOriginalUrl(String originalUrl) {
-    return Mono.just(Optional.empty());
+    return Mono.just(findUrlMappingByOriginalUrl(originalUrl));
   }
 
   @Override
@@ -48,5 +48,9 @@ public class UrlRepositoryImpl implements UrlRepository {
   @Override
   public Mono<Void> incrementAccessCount(UrlMapping urlMapping) {
     return Mono.empty();
+  }
+
+  private Optional<UrlMapping> findUrlMappingByOriginalUrl(String originalUrl) {
+    return Optional.ofNullable(storageService.findUrlMappingByOriginalUrl(originalUrl));
   }
 }
