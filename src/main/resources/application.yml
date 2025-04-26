@@ -1,3 +1,10 @@
 spring:
   application:
     name: url-shortener
+
+aws:
+  access-key: ${AWS_ACCESS_KEY}
+  secret-key: ${AWS_SECRET_KEY}
+  dynamo:
+    table-name: ${DYNAMO_TABLE_NAME}
+    region: ${AWS_REGION}
