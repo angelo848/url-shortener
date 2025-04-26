@@ -1,5 +1,6 @@
 package com.asalles.urlshortener.infrastructure.database;
 
+import com.asalles.urlshortener.api.dto.UrlMappingDynamoMapper;
 import com.asalles.urlshortener.application.service.StorageService;
 import com.asalles.urlshortener.core.entity.UrlMapping;
 import java.time.LocalDateTime;
@@ -53,14 +54,7 @@ public class DynamoDBService implements StorageService {
 
     GetItemResponse urlItem = dynamoDbClient.getItem(request);
     if (urlItem.hasItem()) {
-      Map<String, AttributeValue> item = urlItem.item();
-      return UrlMapping.builder()
-        .originalUrl(item.get("urlMapping").m().get("originalUrl").s())
-        .shortenedUrl(shortCode)
-        .createdAt(LocalDateTime.parse(item.get("urlMapping").m().get("createdAt").s()))
-        .expiresAt(LocalDateTime.parse(item.get("urlMapping").m().get("expiresAt").s()))
-        .accessCount(Long.valueOf(item.get("urlMapping").m().get("accessCount").n()))
-        .build();
+      return UrlMappingDynamoMapper.fromDynamoItem(urlItem.item(), shortCode);
     }
 
     return null;
@@ -74,15 +68,7 @@ public class DynamoDBService implements StorageService {
 
   @Override
   public void storeUrlMapping(UrlMapping urlMapping) {
-    Map<String, AttributeValue> item = Map.of(
-      KEY, AttributeValue.builder().s(urlMapping.getShortenedUrl()).build(),
-      "urlMapping", AttributeValue.builder().m(Map.of(
-        "originalUrl", AttributeValue.builder().s(urlMapping.getOriginalUrl()).build(),
-        "createdAt", AttributeValue.builder().s(urlMapping.getCreatedAt().toString()).build(),
-        "expiresAt", AttributeValue.builder().s(urlMapping.getExpiresAt().toString()).build(),
-        "accessCount", AttributeValue.builder().n(String.valueOf(urlMapping.getAccessCount())).build()
-      )).build()
-    );
+    Map<String, AttributeValue> item = UrlMappingDynamoMapper.toDynamoItem(urlMapping);
 
     PutItemRequest request = PutItemRequest.builder()
       .tableName(TABLE_NAME)
