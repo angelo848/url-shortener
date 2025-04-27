@@ -1,17 +1,20 @@
 package com.asalles.urlshortener.infrastructure.lambda;
 
-import java.util.function.Function;
+import java.util.Arrays;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.annotation.Bean;
+import org.springframework.util.ObjectUtils;
 
+@Slf4j
 @SpringBootApplication
 public class UrlLambdaHandler {
 
   public static void main(String[] args){
-  }
-
-  @Bean
-  public Function<String, String> urlShortenerLambda() {
-    return value -> value.toUpperCase();
+    log.info("==> Starting: LambdaApplication");
+    if (!ObjectUtils.isEmpty(args)) {
+      log.info("==>  args: {}", Arrays.asList(args));
+    }
+    SpringApplication.run(UrlLambdaHandler.class, args);
   }
 }

@@ -24,10 +24,8 @@ repositories {
     mavenCentral()
 }
 
-jar {
-    manifest {
-        attributes 'Main-Class': 'com.asalles.urlshortener.infrastructure.lambda.UrlLambdaHandler'
-    }
+ext {
+    springCloudFunctionVersion = '4.2.2'
 }
 
 import com.github.jengelman.gradle.plugins.shadow.transformers.*
@@ -36,7 +34,7 @@ shadowJar {
     archiveClassifier = 'aws'
     dependencies {
         exclude(
-                dependency("org.springframework.cloud:spring-cloud-function-web:4.2.2"))
+                dependency("org.springframework.cloud:spring-cloud-function-web:${springCloudFunctionVersion}"))
     }
     // Required for Spring
     mergeServiceFiles()
@@ -67,12 +65,12 @@ dependencies {
     implementation 'software.amazon.awssdk:dynamodb-enhanced:2.31.8'
 
     // Spring Cloud Function
-    implementation 'org.springframework.cloud:spring-cloud-function-adapter-aws:4.2.2'
-    implementation 'org.springframework.cloud:spring-cloud-starter-function-webflux:4.2.2'
+    implementation "org.springframework.cloud:spring-cloud-function-adapter-aws:${springCloudFunctionVersion}"
+    implementation "org.springframework.cloud:spring-cloud-starter-function-webflux:${springCloudFunctionVersion}"
 
     // AWS Lambda
-    compileOnly 'com.amazonaws:aws-lambda-java-events:3.15.0'
-    compileOnly 'com.amazonaws:aws-lambda-java-core:1.2.3'
+    implementation 'com.amazonaws:aws-lambda-java-events:3.15.0'
+    implementation 'com.amazonaws:aws-lambda-java-core:1.2.3'
 
 
     // Lombok
