@@ -5,6 +5,7 @@ import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent
 import com.asalles.urlshortener.api.controller.UrlController;
 import com.asalles.urlshortener.api.dto.ShortenUrlRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.Base64;
 import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,33 +24,55 @@ public class ShortenUrlFunction implements Function<APIGatewayProxyRequestEvent,
   private final UrlController urlController;
 
   @Override
-  public Mono<APIGatewayProxyResponseEvent> apply(APIGatewayProxyRequestEvent apiGatewayProxyRequestEvent) {
-    if (!HttpMethod.POST.name().equals(apiGatewayProxyRequestEvent.getHttpMethod())) {
+  public Mono<APIGatewayProxyResponseEvent> apply(APIGatewayProxyRequestEvent event) {
+    if (!HttpMethod.POST.name().equals(event.getHttpMethod())) {
       return Mono.just(new APIGatewayProxyResponseEvent()
         .withStatusCode(400)
-        .withBody("Invalid HTTP method. Only POST is supported for the resource: ." + getClass().getSimpleName()));
+        .withBody("Invalid HTTP method. Only POST is supported."));
     }
+
     try {
-      ShortenUrlRequest shortenUrlRequest = objectMapper.readValue(apiGatewayProxyRequestEvent.getBody(), ShortenUrlRequest.class);
+      // Get the body and decode from Base64
+      String rawBody = event.getBody();
+      if (rawBody == null || rawBody.isBlank()) {
+        return Mono.just(new APIGatewayProxyResponseEvent()
+          .withStatusCode(400)
+          .withBody("Request body is required"));
+      }
 
-      ServerHttpRequest serverHttpRequest = ServerHttpRequestFactory.create(apiGatewayProxyRequestEvent);
+      // Decode the Base64-encoded URL
+      String url = Boolean.TRUE.equals(event.getIsBase64Encoded()) ?
+        new String(Base64.getDecoder().decode(rawBody)) : rawBody;
 
-      return urlController.shortenUrl(shortenUrlRequest, serverHttpRequest)
-        .map(response -> new APIGatewayProxyResponseEvent()
-          .withStatusCode(response.getStatusCode().value())
-          .withBody(convertToJson(response.getBody())))
-        .onErrorResume(e -> {
-          log.error("Error in shorten url lambda function: {}", e.getMessage(), e);
-          return Mono.just(new APIGatewayProxyResponseEvent()
-            .withStatusCode(500)
-            .withBody("Error: " + e.getMessage()));
-        });
+      // Create request and process
+      ShortenUrlRequest shortenUrlRequest = new ShortenUrlRequest(url);
+      return processRequest(shortenUrlRequest, event);
+    } catch (IllegalArgumentException e) {
+      log.error("Invalid Base64 encoding: {}", e.getMessage());
+      return Mono.just(new APIGatewayProxyResponseEvent()
+        .withStatusCode(400)
+        .withBody("Invalid Base64 encoding: " + e.getMessage()));
     } catch (Exception e) {
       log.error("Error processing request: {}", e.getMessage(), e);
       return Mono.just(new APIGatewayProxyResponseEvent()
         .withStatusCode(500)
         .withBody("Internal server error: " + e.getMessage()));
     }
+  }
+
+  private Mono<APIGatewayProxyResponseEvent> processRequest(ShortenUrlRequest request, APIGatewayProxyRequestEvent event) {
+    ServerHttpRequest serverHttpRequest = ServerHttpRequestFactory.create(event);
+
+    return urlController.shortenUrl(request, serverHttpRequest)
+      .map(response -> new APIGatewayProxyResponseEvent()
+        .withStatusCode(response.getStatusCode().value())
+        .withBody(convertToJson(response.getBody())))
+      .onErrorResume(e -> {
+        log.error("Error in shorten url lambda function: {}", e.getMessage(), e);
+        return Mono.just(new APIGatewayProxyResponseEvent()
+          .withStatusCode(500)
+          .withBody("Error: " + e.getMessage()));
+      });
   }
 
   private String convertToJson(Object object) {
