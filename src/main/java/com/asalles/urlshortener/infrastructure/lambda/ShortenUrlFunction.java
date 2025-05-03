@@ -28,11 +28,10 @@ public class ShortenUrlFunction implements Function<APIGatewayProxyRequestEvent,
     if (!HttpMethod.POST.name().equals(event.getHttpMethod())) {
       return Mono.just(new APIGatewayProxyResponseEvent()
         .withStatusCode(400)
-        .withBody("Invalid HTTP method. Only POST is supported."));
+        .withBody("Invalid HTTP method. Only POST is supported for url shorten function."));
     }
 
     try {
-      // Get the body and decode from Base64
       String rawBody = event.getBody();
       if (rawBody == null || rawBody.isBlank()) {
         return Mono.just(new APIGatewayProxyResponseEvent()
@@ -40,11 +39,9 @@ public class ShortenUrlFunction implements Function<APIGatewayProxyRequestEvent,
           .withBody("Request body is required"));
       }
 
-      // Decode the Base64-encoded URL
       String url = Boolean.TRUE.equals(event.getIsBase64Encoded()) ?
         new String(Base64.getDecoder().decode(rawBody)) : rawBody;
 
-      // Create request and process
       ShortenUrlRequest shortenUrlRequest = new ShortenUrlRequest(url);
       return processRequest(shortenUrlRequest, event);
     } catch (IllegalArgumentException e) {

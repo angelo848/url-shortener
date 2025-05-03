@@ -3,7 +3,6 @@ package com.asalles.urlshortener.infrastructure.database;
 import com.asalles.urlshortener.api.dto.UrlMappingDynamoMapper;
 import com.asalles.urlshortener.application.service.StorageService;
 import com.asalles.urlshortener.core.entity.UrlMapping;
-import java.time.LocalDateTime;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,7 +25,7 @@ public class DynamoDBService implements StorageService {
 
   private static final String KEY = "shortCode";
 
-  private final String TABLE_NAME;
+  private final String tableName;
 
   private final String region;
 
@@ -37,7 +36,7 @@ public class DynamoDBService implements StorageService {
       @Value("${aws.dynamo.region:us-east-1}") String region,
       @Value("${aws.access-key}") String accessKey,
       @Value("${aws.secret-key}") String secretKey) {
-    this.TABLE_NAME = tableName;
+    this.tableName = tableName;
     this.region = region;
     this.dynamoDbClient = DynamoDbClient.builder()
       .credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey)))
@@ -48,7 +47,7 @@ public class DynamoDBService implements StorageService {
   @Override
   public UrlMapping getUrlMapping(String shortCode) {
     GetItemRequest request = GetItemRequest.builder()
-      .tableName(TABLE_NAME)
+      .tableName(tableName)
       .key(Map.of(KEY, AttributeValue.builder().s(shortCode).build()))
       .build();
 
@@ -71,7 +70,7 @@ public class DynamoDBService implements StorageService {
     Map<String, AttributeValue> item = UrlMappingDynamoMapper.toDynamoItem(urlMapping);
 
     PutItemRequest request = PutItemRequest.builder()
-      .tableName(TABLE_NAME)
+      .tableName(tableName)
       .item(item)
       .build();
 
@@ -81,7 +80,7 @@ public class DynamoDBService implements StorageService {
   @Override
   public void deleteUrlMapping(UrlMapping urlMapping) {
     DeleteItemRequest request = DeleteItemRequest.builder()
-      .tableName(TABLE_NAME)
+      .tableName(tableName)
       .key(Map.of(KEY, AttributeValue.builder().s(urlMapping.getShortenedUrl()).build()))
       .build();
 
