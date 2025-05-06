@@ -58,9 +58,9 @@ public class ShortenUrlFunction implements Function<APIGatewayProxyRequestEvent,
   }
 
   private Mono<APIGatewayProxyResponseEvent> processRequest(ShortenUrlRequest request, APIGatewayProxyRequestEvent event) {
-    ServerHttpRequest serverHttpRequest = ServerHttpRequestFactory.create(event);
+    // ServerHttpRequest serverHttpRequest = ServerHttpRequestFactory.create(event);
 
-    return urlController.shortenUrl(request, serverHttpRequest)
+    return urlController.shortenUrl(request, null)
       .map(response -> new APIGatewayProxyResponseEvent()
         .withStatusCode(response.getStatusCode().value())
         .withBody(convertToJson(response.getBody())))

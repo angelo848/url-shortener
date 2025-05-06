@@ -60,50 +60,22 @@ public class UrlUtil {
     return result.toString();
   }
 
-  public static String getBaseUrlFromLambdaEvent(APIGatewayProxyRequestEvent event) {
-    if (event == null) {
-      throw new IllegalArgumentException("API Gateway event cannot be null");
+  public static String getBaseUrlFromLambdaEvent(com.asalles.urlshortener.api.dto.RedirectUrlRequest request) {
+    if (request == null) {
+      throw new IllegalArgumentException("RedirectUrlRequest cannot be null");
     }
+    String scheme = request.scheme() != null ? request.scheme() : "https";
+    String host = request.host() != null ? request.host() : "localhost";
+    Integer port = request.port();
+    String stage = request.stage();
 
-    // Get headers safely
-    Map<String, String> headers = event.getHeaders();
-    headers = headers != null ? headers : Collections.emptyMap();
-
-    // Determine host - check X-Forwarded-Host first (for proxies), then Host header
-    String host = headers.getOrDefault("X-Forwarded-Host",
-      headers.getOrDefault("Host", "localhost"));
-
-    // Determine scheme - check X-Forwarded-Proto first, default to https
-    String scheme = headers.getOrDefault("X-Forwarded-Proto", "https");
-
-    // Get port if specified in headers
-    String portStr = headers.get("X-Forwarded-Port");
-    Integer port = null;
-    if (portStr != null) {
-      try {
-        port = Integer.parseInt(portStr);
-      } catch (NumberFormatException ignored) {
-        // Invalid port format, will use default
-      }
-    }
-
-    // Handle stage if present
-    String stagePath = "";
-    if (event.getRequestContext() != null) {
-      String stage = event.getRequestContext().getStage();
-      if (stage != null && !stage.isEmpty() && !stage.equals("$default")) {
-        stagePath = "/" + stage;
-      }
-    }
-
-    // Build the URL with optional port
     StringBuilder baseUrl = new StringBuilder(scheme).append("://").append(host);
-
-    // Add port if needed (and not the default for the scheme)
     if (port != null && !((scheme.equals("http") && port == 80) || (scheme.equals("https") && port == 443))) {
       baseUrl.append(":").append(port);
     }
-
-    return baseUrl.append(stagePath).toString();
+    if (stage != null && !stage.isEmpty() && !stage.equals("$default")) {
+      baseUrl.append("/").append(stage);
+    }
+    return baseUrl.toString();
   }
 }

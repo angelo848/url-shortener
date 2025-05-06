@@ -1,10 +1,12 @@
 package com.asalles.urlshortener.infrastructure.lambda;
 
-import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
+import com.asalles.urlshortener.api.dto.RedirectUrlRequest;
 import com.asalles.urlshortener.application.util.UrlUtil;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Map;
+import java.util.Objects;
+
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.springframework.core.io.buffer.DataBuffer;
@@ -19,20 +21,23 @@ import reactor.core.publisher.Flux;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class ServerHttpRequestFactory {
 
-  public static ServerHttpRequest create(APIGatewayProxyRequestEvent event) {
-    return new MinimalServerHttpRequest(event);
+  public static ServerHttpRequest create(RedirectUrlRequest request) {
+    return new MinimalServerHttpRequest(request);
   }
 
   private static class MinimalServerHttpRequest implements ServerHttpRequest {
     private final URI uri;
+    private final HttpHeaders headers;
 
-    public MinimalServerHttpRequest(APIGatewayProxyRequestEvent event) {
+    public MinimalServerHttpRequest(RedirectUrlRequest request) {
       try {
-        String baseUrlFromLambdaEvent = UrlUtil.getBaseUrlFromLambdaEvent(event);
-
-        this.uri = new URI(baseUrlFromLambdaEvent);
+        this.uri = new URI(UrlUtil.getBaseUrlFromLambdaEvent(request));
+        this.headers = new HttpHeaders();
+        if (Objects.nonNull(request.headers())) {
+          this.headers.setAll(request.headers());
+        }
       } catch (URISyntaxException e) {
-        throw new RuntimeException("Failed to create URI from Lambda event", e);
+        throw new RuntimeException("Failed to create URI from RedirectUrlRequest", e);
       }
     }
 
@@ -64,7 +69,7 @@ public class ServerHttpRequestFactory {
       return null;
     }
 
-    @Override public HttpHeaders getHeaders() { return new HttpHeaders(); }
+    @Override public HttpHeaders getHeaders() { return headers != null ? headers : new HttpHeaders(); }
     @Override public HttpMethod getMethod() { return null; }
     @Override public Flux<DataBuffer> getBody() { return Flux.empty(); }
   }
