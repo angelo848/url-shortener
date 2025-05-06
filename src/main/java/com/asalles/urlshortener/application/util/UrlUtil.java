@@ -1,13 +1,13 @@
 package com.asalles.urlshortener.application.util;
 
-import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
-import java.util.Collections;
-import java.util.Map;
 import java.util.UUID;
 import java.util.Random;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.springframework.http.server.reactive.ServerHttpRequest;
+
+import com.asalles.urlshortener.api.dto.RedirectUrlRequest;
+import com.asalles.urlshortener.api.dto.ShortenUrlRequest;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class UrlUtil {
@@ -60,7 +60,7 @@ public class UrlUtil {
     return result.toString();
   }
 
-  public static String getBaseUrlFromLambdaEvent(com.asalles.urlshortener.api.dto.RedirectUrlRequest request) {
+  public static String getBaseUrlFromLambdaEvent(RedirectUrlRequest request) {
     if (request == null) {
       throw new IllegalArgumentException("RedirectUrlRequest cannot be null");
     }
@@ -77,5 +77,20 @@ public class UrlUtil {
       baseUrl.append("/").append(stage);
     }
     return baseUrl.toString();
+  }
+
+  public static String getBaseUrlFromLambdaEvent(ShortenUrlRequest request) {
+    if (request == null) {
+      throw new IllegalArgumentException("ShortenUrlRequest cannot be null");
+    }
+    // Delegate to the RedirectUrlRequest version since the fields are the same
+    return getBaseUrlFromLambdaEvent(new RedirectUrlRequest(
+      null, // shortenedUrl not needed for base URL
+      request.headers(),
+      request.scheme(),
+      request.host(),
+      request.port(),
+      request.stage()
+    ));
   }
 }

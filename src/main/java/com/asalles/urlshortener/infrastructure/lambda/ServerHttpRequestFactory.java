@@ -1,6 +1,7 @@
 package com.asalles.urlshortener.infrastructure.lambda;
 
 import com.asalles.urlshortener.api.dto.RedirectUrlRequest;
+import com.asalles.urlshortener.api.dto.ShortenUrlRequest;
 import com.asalles.urlshortener.application.util.UrlUtil;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -25,6 +26,10 @@ public class ServerHttpRequestFactory {
     return new MinimalServerHttpRequest(request);
   }
 
+  public static ServerHttpRequest create(ShortenUrlRequest request) {
+    return new MinimalServerHttpRequest(request);
+  }
+
   private static class MinimalServerHttpRequest implements ServerHttpRequest {
     private final URI uri;
     private final HttpHeaders headers;
@@ -38,6 +43,18 @@ public class ServerHttpRequestFactory {
         }
       } catch (URISyntaxException e) {
         throw new RuntimeException("Failed to create URI from RedirectUrlRequest", e);
+      }
+    }
+
+    public MinimalServerHttpRequest(ShortenUrlRequest request) {
+      try {
+        this.uri = new URI(UrlUtil.getBaseUrlFromLambdaEvent(request));
+        this.headers = new HttpHeaders();
+        if (request.headers() != null) {
+          this.headers.setAll(request.headers());
+        }
+      } catch (URISyntaxException e) {
+        throw new RuntimeException("Failed to create URI from ShortenUrlRequest", e);
       }
     }
 
