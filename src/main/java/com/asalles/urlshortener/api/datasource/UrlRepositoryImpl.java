@@ -7,6 +7,7 @@ import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 @Component
 @RequiredArgsConstructor
@@ -18,8 +19,12 @@ public class UrlRepositoryImpl implements UrlRepository {
 
   @Override
   public Mono<Void> save(UrlMapping urlMapping) {
-    return Mono.fromRunnable(() ->
-      storageService.storeUrlMapping(urlMapping));
+    return Mono.fromCallable(() -> {
+      storageService.storeUrlMapping(urlMapping);
+      return null;
+    })
+    .subscribeOn(Schedulers.boundedElastic())
+    .then();
   }
 
   @Override
