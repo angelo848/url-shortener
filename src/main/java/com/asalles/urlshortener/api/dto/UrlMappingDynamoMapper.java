@@ -14,30 +14,27 @@ public class UrlMappingDynamoMapper {
   private static final String KEY = "shortCode";
 
   public static Map<String, AttributeValue> toDynamoItem(UrlMapping urlMapping) {
-    Map<String, AttributeValue> attributes = new HashMap<>();
-    attributes.put("originalUrl", AttributeValue.builder().s(urlMapping.getOriginalUrl()).build());
-    attributes.put("createdAt", AttributeValue.builder().s(urlMapping.getCreatedAt().toString()).build());
-    attributes.put("expiresAt", AttributeValue.builder().s(urlMapping.getExpiresAt().toString()).build());
-    attributes.put("accessCount", AttributeValue.builder().n(String.valueOf(urlMapping.getAccessCount())).build());
+    Map<String, AttributeValue> item = new HashMap<>();
+    item.put(KEY, AttributeValue.builder().s(urlMapping.getShortenedUrl()).build());
+    item.put("originalUrl", AttributeValue.builder().s(urlMapping.getOriginalUrl()).build());
+    item.put("createdAt", AttributeValue.builder().s(urlMapping.getCreatedAt().toString()).build());
+    item.put("expiresAt", AttributeValue.builder().s(urlMapping.getExpiresAt().toString()).build());
+    item.put("accessCount", AttributeValue.builder().n(String.valueOf(urlMapping.getAccessCount())).build());
 
-    return Map.of(
-      KEY, AttributeValue.builder().s(urlMapping.getShortenedUrl()).build(),
-      "urlMapping", AttributeValue.builder().m(attributes).build()
-    );
+    return item;
   }
 
   public static UrlMapping fromDynamoItem(Map<String, AttributeValue> item, String shortCode) {
     if (item == null || item.isEmpty()) {
       return null;
     }
-    Map<String, AttributeValue> urlMapping = item.get("urlMapping").m();
 
     return UrlMapping.builder()
       .shortenedUrl(shortCode)
-      .originalUrl(urlMapping.get("originalUrl").s())
-      .createdAt(LocalDateTime.parse(urlMapping.get("createdAt").s()))
-      .expiresAt(LocalDateTime.parse(urlMapping.get("expiresAt").s()))
-      .accessCount(Long.parseLong(urlMapping.get("accessCount").n()))
+      .originalUrl(item.get("originalUrl").s())
+      .createdAt(LocalDateTime.parse(item.get("createdAt").s()))
+      .expiresAt(LocalDateTime.parse(item.get("expiresAt").s()))
+      .accessCount(Long.parseLong(item.get("accessCount").n()))
       .build();
   }
 }

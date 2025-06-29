@@ -17,6 +17,8 @@ import software.amazon.awssdk.services.dynamodb.model.DeleteItemRequest;
 import software.amazon.awssdk.services.dynamodb.model.GetItemRequest;
 import software.amazon.awssdk.services.dynamodb.model.GetItemResponse;
 import software.amazon.awssdk.services.dynamodb.model.PutItemRequest;
+import software.amazon.awssdk.services.dynamodb.model.QueryRequest;
+import software.amazon.awssdk.services.dynamodb.model.QueryResponse;
 
 @Slf4j
 @Repository
@@ -24,11 +26,10 @@ import software.amazon.awssdk.services.dynamodb.model.PutItemRequest;
 public class DynamoDBService implements StorageService {
 
   private static final String KEY = "shortCode";
+  private static final String ORIGINAL_URL_GSI = "originalUrl-index";
 
   private final String tableName;
-
   private final String region;
-
   private final DynamoDbClient dynamoDbClient;
 
   public DynamoDBService(
@@ -61,8 +62,30 @@ public class DynamoDBService implements StorageService {
 
   @Override
   public UrlMapping findUrlMappingByOriginalUrl(String originalUrl) {
-    // TODO: analyze if add a secondary index or remove this method as DynamoDB does not support queries by non-key attributes
-    return null;
+    try {
+      QueryRequest queryRequest = QueryRequest.builder()
+        .tableName(tableName)
+        .indexName(ORIGINAL_URL_GSI)
+        .keyConditionExpression("originalUrl = :originalUrl")
+        .expressionAttributeValues(Map.of(
+          ":originalUrl", AttributeValue.builder().s(originalUrl).build()
+        ))
+        .limit(1)
+        .build();
+
+      QueryResponse queryResponse = dynamoDbClient.query(queryRequest);
+
+      if (queryResponse.hasItems() && !queryResponse.items().isEmpty()) {
+        Map<String, AttributeValue> item = queryResponse.items().get(0);
+        String shortCode = item.get(KEY).s();
+        return UrlMappingDynamoMapper.fromDynamoItem(item, shortCode);
+      }
+      
+      return null;
+    } catch (Exception e) {
+      log.error("Error querying DynamoDB GSI for originalUrl: {}", originalUrl, e);
+      return null;
+    }
   }
 
   @Override
